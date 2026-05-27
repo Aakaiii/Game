@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+    
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, target-densitydpi=device-dpi">
@@ -570,6 +571,15 @@
         }
 
         initMap();
+        body * {
+    -webkit-touch-callout: none; /* 關鍵：停用 iOS 長按跳出選單 (複製/尋找/分享) */
+    -webkit-user-select: none;   /* 停用 iOS Safari、Android Chrome 文字選取 */
+    -khtml-user-select: none;    
+    -moz-user-select: none;      /* Firefox */
+    -ms-user-select: none;       /* IE/Edge */
+    user-select: none;           /* 標準語法 */
+}
+
     </script>
 </body>
 </html>
