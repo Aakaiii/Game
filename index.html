@@ -2,324 +2,145 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>桃園公車通勤地獄：十全互動大師版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桃園公車通勤地獄：相容性終極版</title>
     <style>
-        * { 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent; 
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #0b0f19; color: #ffffff; margin: 0; padding: 10px;
-            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
-            overflow-x: hidden;
-        }
-        h1 { margin: 5px 0 2px 0; color: #fbbf24; font-size: 24px; text-align: center; text-shadow: 0 0 8px rgba(251,191,36,0.3); }
-        .subtitle { color: #94a3b8; font-size: 11px; margin-bottom: 12px; text-align: center; }
-        
-        .game-layout {
-            display: flex; flex-direction: column; width: 100%; max-width: 430px;
-            background: #1e293b; padding: 15px; border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.6); gap: 12px;
-        }
-
-        /* 雙狀態儀表板 */
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .stat-box { background: #0f172a; padding: 8px; border-radius: 10px; border: 1px solid #334155; }
-        .stat-label { font-size: 11px; color: #cbd5e1; margin-bottom: 4px; font-weight: bold; }
-        .progress-container { background: #334155; border-radius: 6px; height: 16px; overflow: hidden; position: relative; }
-        .progress-bar { height: 100%; width: 100%; transition: width 0.3s ease; }
-        .bar-patience { background: linear-gradient(90deg, #10b981, #059669); }
-        .bar-time { background: linear-gradient(90deg, #3b82f6, #1d4ed8); width: 0%; }
-        .progress-text { position: absolute; width: 100%; text-align: center; top: 1px; font-size: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
-
-        /* 垂直線性地圖 */
-        .map-viewport {
-            background: #0f172a; border-radius: 12px; padding: 15px 10px; max-height: 200px;
-            overflow-y: auto; position: relative; border: 1px solid #334155; -webkit-overflow-scrolling: touch;
-        }
-        .map-viewport::before { content: ''; position: absolute; left: 35px; top: 0; bottom: 0; width: 4px; background: #475569; z-index: 1; }
-        .timeline-node { display: flex; align-items: center; margin-bottom: 15px; position: relative; z-index: 2; }
-        .timeline-node:last-child { margin-bottom: 0; }
-        
-        .node-circle {
-            width: 34px; height: 34px; background: #334155; color: #94a3b8; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; font-size: 16px;
-            font-weight: bold; border: 3px solid #475569; margin-right: 15px; transition: all 0.2s;
-        }
-        .node-info-text { flex: 1; }
-        .node-title { font-size: 14px; font-weight: bold; color: #e2e8f0; }
-        .node-meta { font-size: 11px; color: #64748b; }
-        .active .node-circle { border-color: #fbbf24; background: #fbbf24; color: #0f172a; transform: scale(1.05); box-shadow: 0 0 10px #fbbf24; }
-        .st-start .node-circle { background: #10b981; color: white; border-color: #059669; }
-        .st-end .node-circle { background: #3b82f6; color: white; border-color: #2563eb; }
-
-        .bus-marker {
-            position: absolute; left: 21px; font-size: 20px; z-index: 10;
-            margin-top: -10px; pointer-events: none;
-        }
-
-        /* 事件卡片 */
-        .event-card { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px; min-height: 100px; display: flex; flex-direction: column; justify-content: center; }
-        .event-heading { font-size: 16px; font-weight: bold; color: #fbbf24; margin-bottom: 4px; }
-        .event-impact { font-size: 12px; font-weight: bold; color: #f43f5e; margin-bottom: 6px; }
-        .event-desc { font-size: 13px; color: #cbd5e1; line-height: 1.4; }
-
-        /* 控制按鈕 */
-        .action-area { display: flex; align-items: center; gap: 10px; }
-        .dice-box { font-size: 36px; width: 50px; text-align: center; }
-        .btn-main {
-            background: #fbbf24; color: #0f172a; border: none; padding: 14px;
-            font-size: 17px; font-weight: bold; border-radius: 8px; cursor: pointer; flex: 1;
-            box-shadow: 0 4px 0 #b45309; transition: 0.1s;
-        }
-        .btn-main:active { transform: translateY(2px); box-shadow: 0 2px 0 #b45309; }
-        .btn-main:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
-        .btn-restart { background: #10b981; color: white; box-shadow: 0 4px 0 #047857; }
-
-        /* ─── 互動小遊戲全螢幕遮罩與豐富動畫 ─── */
-        .mini-game-overlay {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(11, 15, 25, 0.98); z-index: 100;
-            flex-direction: column; align-items: center; justify-content: center; padding: 20px;
-        }
-        .game-window {
-            width: 100%; max-width: 360px; background: #1e293b; border: 2px solid #475569;
-            border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center;
-            box-shadow: 0 0 30px rgba(0,0,0,0.7); position: relative; animation: popIn 0.2s ease-out;
-        }
-        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        
-        /* 視覺互動組件庫 */
-        .interactive-zone { width: 100%; min-height: 150px; margin: 15px 0; display: flex; align-items: center; justify-content: center; position: relative; background: #0f172a; border-radius: 12px; overflow: hidden; border: 1px solid #334155; }
-        
-        /* 1. 精準攔截動態條 */
-        .slider-track { width: 90%; height: 20px; background: #334155; border-radius: 10px; position: relative; }
-        .slider-target { position: absolute; left: 45%; width: 15%; height: 100%; background: #10b981; border-radius: 4px; box-shadow: 0 0 10px #10b981; }
-        .slider-pin { position: absolute; left: 0%; width: 8px; height: 140%; top: -20%; background: #f43f5e; border-radius: 2px; }
-        
-        /* 2. 蓄力圓圈 */
-        .charge-ring { width: 100px; height: 100px; border-radius: 50%; border: 8px solid #334155; position: relative; display: flex; align-items: center; justify-content: center; }
-        .charge-fill { position: absolute; width: 100px; height: 100px; border-radius: 50%; border: 8px solid #fbbf24; border-top-color: transparent; border-left-color: transparent; transform: rotate(-45deg); display: none;}
-        
-        /* 3. 平衡球 */
-        .balance-board { width: 80%; height: 10px; background: #cbd5e1; border-radius: 5px; position: relative; }
-        .balance-ball { width: 24px; height: 24px; background: #fbbf24; border-radius: 50%; position: absolute; top: -7px; left: 50%; transform: translateX(-50%); box-shadow: 0 0 8px #fbbf24; }
-        
-        /* 4. 左右閃躲格 */
-        .dodge-container { display: flex; width: 90%; justify-content: space-between; gap: 10px; }
-        .dodge-lane { flex: 1; height: 120px; background: #1e293b; border-radius: 8px; position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; border: 1px dashed #475569; }
-        .dodge-lane.danger { background: rgba(244,63,94,0.2); border-color: #f43f5e; animation: flash 0.3s infinite alternate; }
-        @keyframes flash { from { opacity: 0.5; } to { opacity: 1; } }
-        .player-box { width: 30px; height: 30px; background: #3b82f6; border-radius: 6px; font-size: 20px; display: flex; align-items: center; justify-content: center; }
-
-        /* 5. 記憶方塊 */
-        .memory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 180px; }
-        .grid-block { width: 50px; height: 50px; background: #334155; border-radius: 6px; cursor: pointer; transition: background 0.1s; }
-        .grid-block.active { background: #fbbf24; box-shadow: 0 0 12px #fbbf24; }
-
-        /* 💥 打架動畫特製樣式 */
-        .fight-arena { display: flex; align-items: center; justify-content: center; gap: 40px; position: relative; width: 100%; height: 120px; }
-        .fighter { font-size: 40px; }
-        .fighter-left { animation: punchLeft 0.5s infinite ease-in-out alternate; }
-        .fighter-right { animation: punchRight 0.5s infinite ease-in-out alternate 0.25s; }
-        .clash-fx { position: absolute; font-size: 30px; opacity: 0; transform: scale(0.5); pointer-events: none; color: #fbbf24; font-weight: bold; text-shadow: 0 0 8px #f59e0b; }
-        .clash-fx.hit { opacity: 1; transform: scale(1.3); }
-
-        @keyframes punchLeft {
-            0% { transform: translateX(0) rotate(0deg); }
-            100% { transform: translateX(35px) rotate(15deg); }
-        }
-        @keyframes punchRight {
-            0% { transform: translateX(0) rotate(0deg); }
-            100% { transform: translateX(-35px) rotate(-15deg); }
-        }
-
-        /* 計時與通用按鈕 */
-        .game-timer-bar { width: 100%; height: 8px; background: #334155; border-radius: 4px; margin-top: 15px; overflow: hidden; }
-        .game-timer-fill { height: 100%; background: #fbbf24; width: 100%; }
-        .interact-btn { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 15px; margin-top: 10px; box-shadow: 0 3px 0 #1d4ed8; }
-        .interact-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #1d4ed8; }
+        body { font-family: sans-serif; background-color: #0b0f19; color: #ffffff; padding: 15px; text-align: center; }
+        .game-layout { background: #1e293b; max-width: 400px; margin: 0 auto; padding: 20px; border-radius: 12px; }
+        .stat { background: #0f172a; padding: 10px; margin: 10px 0; border-radius: 8px; font-weight: bold; }
+        .btn-main { background: #fbbf24; color: #0f172a; border: none; padding: 15px; font-size: 18px; font-weight: bold; border-radius: 8px; width: 100%; cursor: pointer; margin-top: 15px; }
+        .btn-main:disabled { background: #475569; color: #94a3b8; }
+        /* 小遊戲遮罩 */
+        .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 100; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .zone { width: 100%; height: 100px; background: #0f172a; margin: 20px 0; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 2px dashed #fbbf24; }
     </style>
 </head>
 <body>
 
     <h1>桃園公車通勤地獄</h1>
-    <div class="subtitle">【十全互動大師版】10種不重複核心小遊戲・動態視覺反饋</div>
+    <p>【純同步穩定版】相容所有舊款手機與電腦瀏覽器</p>
 
     <div class="game-layout">
-        <div class="dashboard">
-            <div class="stat-box">
-                <div class="stat-label">🧠 乘客理智值</div>
-                <div class="progress-container">
-                    <div id="bar-pat" class="progress-bar bar-patience"></div>
-                    <div id="text-pat" class="progress-text">120/120</div>
-                </div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">⏰ 已通勤時間</div>
-                <div class="progress-container">
-                    <div id="bar-time" class="progress-bar bar-time"></div>
-                    <div id="text-time" class="progress-text">0/100分</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="map-viewport" id="map-scroll-box">
-            <div id="bus-marker" class="bus-marker">🚌</div>
-            <div id="timeline-container"></div>
+        <div class="stat">🧠 理智值: <span id="txt-pat">120</span> / 120</div>
+        <div class="stat">⏰ 時間: <span id="txt-time">0</span> / 100 分鐘</div>
+        <div class="stat" style="font-size: 24px;">目前站點：<span id="txt-station">中壢客運總站</span></div>
+
+        <div style="background:#0f172a; padding:15px; border-radius:8px; margin:15px 0; text-align:left; min-height:80px;">
+            <b id="ev-title" style="color:#fbbf24;">📢 準備發車</b><br>
+            <span id="ev-desc" style="font-size:14px; color:#cbd5e1;">點擊下方按鈕開始前進！</span>
         </div>
 
-        <div class="event-card">
-            <div id="ev-title" class="event-heading">📢 發車準備中</div>
-            <div id="ev-impact" class="event-impact"></div>
-            <div id="ev-desc" class="event-desc">中壢客運總站即將發車。前方路況險惡，將隨機迎來10種完全不同的多動態考驗，請保持警惕！</div>
-        </div>
-        
-        <div class="action-area">
-            <div id="dice-view" class="dice-box">🎲</div>
-            <button id="action-btn" class="btn-main">擲骰子前進</button>
-        </div>
+        <div style="font-size: 40px; margin: 10px;" id="dice-view">🎲</div>
+        <button id="action-btn" class="btn-main" onclick="rollDice()">擲骰子前進</button>
     </div>
 
-    <div id="mini-game-screen" class="mini-game-overlay">
-        <div class="game-window">
-            <h3 id="game-title" style="color:#fbbf24; margin:0 0 5px 0; font-size:18px; text-align:center;"></h3>
-            <p id="game-desc" style="font-size:12px; color:#cbd5e1; margin:0 0 10px 0; text-align:center;"></p>
-            
-            <div class="interactive-zone" id="game-zone"></div>
-            
-            <div id="game-status-text" style="font-size:13px; color:#f43f5e; font-weight:bold;"></div>
-            <button id="game-action-btn" class="interact-btn" style="display:none;"></button>
-            <div class="game-timer-bar"><div id="game-timer-fill" class="game-timer-fill"></div></div>
-        </div>
+    <div id="game-screen" class="overlay">
+        <h2 id="game-title" style="color:#fbbf24;"></h2>
+        <p id="game-desc" style="max-width:300px; text-align:center;"></p>
+        <div class="zone" id="game-zone"></div>
+        <button id="game-btn" class="btn-main" style="max-width:300px;"></button>
     </div>
 
     <script>
-        // 真實公車站點
-        const stations = [
-            { name: "中壢客運總站", type: "start", icon: "🏪" },
-            { name: "延平路口", type: "normal", icon: "🚏" },
-            { name: "中壢監理站", type: "normal", icon: "🏢" },
-            { name: "老街溪站", type: "normal", icon: "🌊" },
-            { name: "中正路口", type: "normal", icon: "🚧" },
-            { name: "中壢火車站後站", type: "normal", icon: "🚉" },
-            { name: "健行科技大學", type: "normal", icon: "🏫" },
-            { name: "大林路口", type: "normal", icon: "🚦" },
-            { name: "普忠路口", type: "normal", icon: "🛣️" },
-            { name: "環中東路", type: "normal", icon: "🚗" },
-            { name: "中原國小", type: "normal", icon: "🎒" },
-            { name: "實踐路口", type: "normal", icon: "🍱" },
-            { name: "中原大學正門", type: "end", icon: "🎓" }
+        const stations = ["中壢客運總站", "延平路口", "中壢監理站", "老街溪站", "中正路口", "中壢火車站後站", "健行科技大學", "普忠路口", "環中東路", "中原大學正門"];
+        const games = [
+            { id: "mash", title: "🥊 速度對決：拉開車內打架", desc: "阿伯跟乘客打起來了！連續點擊按鈕 5 次勸架！", need: 5 },
+            { id: "wave", title: "👋 瘋狂揮手：幽靈公車防漏接", desc: "司機沒看到你！看準時機快速揮手點擊 3 次！", need: 3 }
         ];
-
-        const gamePool = [
-            { id: "intercept", title: "🎯 精準攔截：悠遊卡感應", desc: "感應器接觸不良！當紅色指針移動到綠色黃金區域時，立刻點擊按鈕刷卡！", p: -25, t: 15 },
-            { id: "charge", title: "💪 蓄力長按：擠進車廂", desc: "車門快關了！長按按鈕聚集力量，當力量剛好達到80-100%時放開擠進去！", p: -20, t: 10 },
-            { id: "balance", title: "⚖️ 平衡保持：急煞甩尾", desc: "公車正在瘋狂飆速急煞！連續點擊左右修正按鈕，將核心平衡保持在中央！", p: -30, t: 0 },
-            { id: "dodge", title: "💦 左右閃躲：空調口漏水", desc: "頭頂空調孔要漏髒水了！注意紅色警戒燈，點擊按鈕切換左右座位閃躲！", p: -25, t: 5 },
-            { id: "rhythm", title: "🎵 節奏拍擊：跟隨司機碎念", desc: "司機正在用大喇叭瘋狂廣播！在倒數正好歸零的瞬間按下按鈕隨聲附和！", p: -15, t: 10 },
-            { id: "memory", title: "🧩 盲盒記憶：尋找遺落雨傘", desc: "車廂太暗了！看清發光的博愛座位置，隨後憑記憶點擊正確的方塊找出雨傘！", p: -20, t: 15 },
-            { id: "mash", title: "🥊 速度對決：拉開車內打架", desc: "阿伯跟乘客打起來了！瘋狂點擊按鈕勸架，用氣勢強行拉開他們！", p: -40, t: 30 },
-            { id: "hold", title: "👃 長按憋氣：明星花露水化學戰", desc: "隔壁大叔擦了整瓶明星花露水！按住按鈕不放進行憋氣，直到危險過去！", p: -25, t: 0 },
-            { id: "stopwatch", title: "⏱️ 秒錶控時：精準下車鈴", desc: "馬上要過站了！在時間走到剛好 4.50 到 5.00 秒之間按下停鈴，過頭就慘了！", p: -30, t: 20 },
-            { id: "wave", title: "👋 瘋狂揮手：幽靈公車防漏接", desc: "公車司機沒看到你！看準時機快速揮手（點擊3次亮起綠燈）讓司機停下！", p: -20, t: 25 }
-        ];
-
-        let activeGameQueue = [];
-        function shuffleGames() { activeGameQueue = [...gamePool].sort(() => Math.random() - 0.5); }
 
         let patience = 120; let timeCost = 0; let currentIdx = 0; let isGameOver = false;
-        let gameTimer = null; let gameLogicInterval = null; let gameTimeLeft = 100;
-        let gameSuccess = false; let gameMeta = {};
-
-        function initMap() {
-            const container = document.getElementById("timeline-container");
-            container.innerHTML = "";
-            stations.forEach((st, i) => {
-                const node = document.createElement("div");
-                node.className = `timeline-node st-${st.type}`; node.id = `node-${i}`;
-                node.innerHTML = `<div class="node-circle">${st.icon}</div><div class="node-info-text"><div class="node-title">${st.name}</div><div class="node-meta">${st.type==='start'?'起點':st.type==='end'?'終點':'未知盲盒事件'}</div></div>`;
-                container.appendChild(node);
-            });
-            shuffleGames(); setTimeout(moveBusMarker, 100);
-        }
-
-        // 核心優化：【取消平滑滾動】防止手機系統 UI 在滾動時凍結、攔截觸控事件
-        function moveBusMarker() {
-            const bus = document.getElementById("bus-marker"); const targetNode = document.getElementById(`node-${currentIdx}`);
-            document.querySelectorAll('.timeline-node').forEach(n => n.classList.remove('active')); targetNode.classList.add('active');
-            
-            const topPos = targetNode.offsetTop + (targetNode.querySelector('.node-circle').offsetHeight / 2);
-            bus.style.top = `${topPos}px`;
-            
-            // 改為精準瞬間移動，不再使用可能造成非同步卡死的 smooth
-            document.getElementById("map-scroll-box").scrollTop = targetNode.offsetTop - 40;
-        }
+        let curGame = null; let clickCount = 0;
 
         function rollDice() {
-            if (isGameOver) return;
-            const actionBtn = document.getElementById("action-btn");
-            actionBtn.disabled = true;
+            if (isGameOver) { restartGame(); return; }
             
+            // 拔掉所有計時器與動畫，改為「純同步」瞬間結算
             const dice = Math.floor(Math.random() * 2) + 1;
-            document.getElementById("dice-view").innerText = "⏳";
+            document.getElementById("dice-view").innerText = dice === 1 ? "⚀" : "⚁";
+            
+            currentIdx += dice;
+            if (currentIdx >= stations.length - 1) currentIdx = stations.length - 1;
+            
+            document.getElementById("txt-station").innerText = stations[currentIdx];
 
-            setTimeout(() => {
-                document.getElementById("dice-view").innerText = dice === 1 ? "⚀" : "⚁";
-                
-                // 改為安全、無阻塞的立即位置結算
-                currentIdx += dice;
-                if (currentIdx >= stations.length - 1) {
-                    currentIdx = stations.length - 1;
+            // 終點判斷
+            if (currentIdx === stations.length - 1) {
+                settle(0, 0, "🎉 抵達校園！", "成功挺過公車地獄，活著踏入中原大學！");
+                return;
+            }
+
+            // 隨機觸核小遊戲
+            if (Math.random() < 0.7) {
+                startMiniGame();
+            } else {
+                settle(-10, 10, "🚗 平穩行駛", "路況正常，順利前進。");
+            }
+        }
+
+        function startMiniGame() {
+            curGame = games[Math.floor(Math.random() * games.length)];
+            clickCount = curGame.need;
+
+            document.getElementById("game-title").innerText = curGame.title;
+            document.getElementById("game-desc").innerText = curGame.desc;
+            document.getElementById("game-zone").innerText = curGame.id === "mash" ? "👴 💢 🧔" : "🛑 🚌 🛑";
+            
+            const btn = document.getElementById("game-btn");
+            btn.innerText = `點擊！還剩 ${clickCount} 次`;
+            
+            // 傳統 onclick，確保電腦手機都能點
+            btn.onclick = function() {
+                clickCount--;
+                if (clickCount > 0) {
+                    btn.innerText = `點擊！還剩 ${clickCount} 次`;
+                    if(curGame.id === "mash") document.getElementById("game-zone").innerText = "💥 PUNCH! 💥";
+                } else {
+                    document.getElementById("game-screen").style.display = "none";
+                    settle(15, 0, "⚡ 應對成功！", `成功化解了：${curGame.title}`);
                 }
-                
-                moveBusMarker();
+            };
 
-                // 核心優化：確保巴士位置與數據定位完成後，才觸發下一步，徹底避免凍結
-                setTimeout(() => {
-                    if (currentIdx === stations.length - 1) {
-                        settleGame(0, 0, "🎉 抵達校園！", "成功挺過公車地獄，活著踏入中原大學！");
-                    } else if (Math.random() < 0.85 && activeGameQueue.length > 0) {
-                        launchEngine(activeGameQueue.pop());
-                    } else {
-                        settleGame(-10, 10, "🚗 平穩行駛", "這一站運氣不錯，路上只有輕微塞車，沒有奇怪的乘客。");
-                    }
-                }, 400);
-
-            }, 300);
+            document.getElementById("game-screen").style.display = "flex";
         }
 
-        // 萬能觸控手勢防禦機制
-        function bindFastClick(btnElement, callback) {
-            btnElement.ontouchstart = (e) => {
-                e.preventDefault();
-                callback();
-            };
-            btnElement.onclick = (e) => {
-                e.preventDefault();
-                callback();
-            };
+        function settle(pMod, tMod, title, desc) {
+            patience += pMod; timeCost += tMod;
+            if (patience > 120) patience = 120; if (patience < 0) patience = 0;
+            if (timeCost > 100) timeCost = 100;
+
+            document.getElementById("txt-pat").innerText = patience;
+            document.getElementById("txt-time").innerText = timeCost;
+            document.getElementById("ev-title").innerText = title;
+            document.getElementById("ev-desc").innerText = desc;
+
+            if (patience <= 0) {
+                document.getElementById("ev-title").innerText = "💥 理智崩潰！";
+                document.getElementById("ev-desc").innerText = "你原地跳車，本次通勤失敗。";
+                endGame();
+            } else if (timeCost >= 100) {
+                document.getElementById("ev-title").innerText = "⏰ 嚴重遲到！";
+                document.getElementById("ev-desc").innerText = "耗費太多時間，到學校大家都放學了。";
+                endGame();
+            } else if (currentIdx === stations.length - 1) {
+                endGame();
+            }
         }
 
-        function launchEngine(g) {
-            gameMeta = g; gameTimeLeft = 100; gameSuccess = false;
-            document.getElementById("game-title").innerText = g.title;
-            document.getElementById("game-desc").innerText = g.desc;
-            document.getElementById("game-status-text").innerText = "";
-            
-            const zone = document.getElementById("game-zone");
-            const actBtn = document.getElementById("game-action-btn");
-            zone.innerHTML = ""; actBtn.style.display = "none";
-            
-            clearInterval(gameLogicInterval);
-            document.getElementById("mini-game-screen").style.display = "flex";
+        function endGame() {
+            isGameOver = true;
+            document.getElementById("action-btn").innerText = "🔄 重新挑战";
+        }
 
-            if (g.id === "intercept") {
-                zone.innerHTML = `<div class="slider-track"><div class="slider-target"></div><div class="slider-pin" id="ipin"></div></div>`;
-                actBtn.style.display = "block"; actBtn
+        function restartGame() {
+            patience = 120; timeCost = 0; currentIdx = 0; isGameOver = false;
+            document.getElementById("txt-pat").innerText = patience;
+            document.getElementById("txt-time").innerText = timeCost;
+            document.getElementById("txt-station").innerText = stations[0];
+            document.getElementById("ev-title").innerText = "📢 重新出發";
+            document.getElementById("ev-desc").innerText = "新一輪的通勤地獄開始了。";
+            document.getElementById("action-btn").innerText = "擲骰子前進";
+            document.getElementById("dice-view").innerText = "🎲";
+        }
+    </script>
+</body>
+</html>
